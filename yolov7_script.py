@@ -14,14 +14,25 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized,
 import fbchat
 import json
 
+#Adafruit io connecting
+AIO_USERNAME = "username"
+AIO_KEY = "aio_key"
+
+client = MQTTClient(AIO_USERNAME , AIO_KEY)
+client.connect()
+client.loop_background()
+# Disable scientific notation for clarity
+#np.set_printoptions(suppress=True)
+
+#Facebook connecting 
 with open(r"C:\Users\Admin\PycharmProjects\YOLOV7\fb_cookies.json") as f:
     cookies = json.load(f)
 username = "username"
 password = "password"
-client = fbchat.Client(username, password,session_cookies=cookies)
+maxxx = fbchat.Client(username, password,session_cookies=cookies)
 
 name = "friend name"
-friends = client.searchForUsers(name) # return a list of names
+friends = maxxx.searchForUsers(name) # return a list of names
 friend = friends[0] #Modify if you want to send to more people
 
 def detect(source, weights, device, img_size, iou_thres, conf_thres):
@@ -101,10 +112,29 @@ def detect(source, weights, device, img_size, iou_thres, conf_thres):
 
                     if names[int(cls)] == 'Fire 🔥' and float(conf) > 0.80:
                         msg = "Fire detected!"
-                        sent = client.sendMessage(msg, thread_id=friend.uid)
+                        sent = maxxx.sendMessage(msg, thread_id=friend.uid)
                         if sent:
                             print("Message sent successfully!")
+                        
 
                     plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
         cv2.imshow(str(p), im0)
+        # Convert the image to JPEG format       
+        img_encoded = cv2.imencode('.jpg', im0)[1]
+
+        # Encode the JPEG image as base64
+        encoded_data = base64.b64encode(img_encoded).decode('utf-8')
+
+        # Simulate publishing the image to Adafruit IO 
+        print("Publishing image to Adafruit IO...")
+        client.publish("ai", encoded_data)
+
+        print("Waiting 0.5s")
+        time.sleep(0.5)
+        # Listen to the keyboard for presses.
+        keyboard_input = cv2.waitKey(1)
+
+        # 27 is the ASCII for the esc key on your keyboard.
+        if keyboard_input == 27:
+            break
     print(f"Done, ({time.perf_counter() - t0:.3f}s)")
