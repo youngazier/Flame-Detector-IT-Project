@@ -11,8 +11,12 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
+
 import fbchat
 import json
+
+from Adafruit_IO import MQTTClient
+import base64
 
 #Adafruit io connecting
 AIO_USERNAME = "username"
