@@ -1,7 +1,6 @@
 import cv2
 from yolov7_script import detect
 
-
 # Device selection
 device = 'cpu'
 
@@ -14,14 +13,10 @@ conf_thres = 0.91
 # URL for the Android camera video stream
 url = "http://172.16.131.106:8080/video"
 
-video = cv2.VideoCapture(url)
-
 # While loop to continuously fetching data from the URL
 while True:
-    ret, frame = video.read()
-
     detect_results = detect(source=url, weights=weights_path, device=device, img_size=img_size,
                                     iou_thres=iou_thres, conf_thres=conf_thres)
-    cv2.imshow("Android_cam", frame)
+
 
 
