@@ -28,6 +28,8 @@ client.loop_background()
 # Disable scientific notation for clarity
 #np.set_printoptions(suppress=True)
 
+fire_detected_flag = False
+
 #Facebook connecting 
 with open(r"C:\Users\Admin\PycharmProjects\YOLOV7\fb_cookies.json") as f:
     cookies = json.load(f)
@@ -114,11 +116,12 @@ def detect(source, weights, device, img_size, iou_thres, conf_thres):
                 for *xyxy, conf, cls in reversed(det):
                     label = f'{names[int(cls)]}{conf:.2f}'
 
-                    if names[int(cls)] == 'Fire 🔥' and float(conf) > 0.80:
+                    if names[int(cls)] == 'Fire 🔥' and float(conf) > 0.80 and not fire_detected_flag:
                         msg = "Fire detected!"
                         sent = maxxx.sendMessage(msg, thread_id=friend.uid)
                         if sent:
                             print("Message sent successfully!")
+                        fire_detected_flag = True
                         
 
                     plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
