@@ -12,25 +12,23 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
-import fbchat
-import json
-
 from Adafruit_IO import MQTTClient
 import base64
 
-#Adafruit io connecting
-AIO_USERNAME = "username"
-AIO_KEY = "aio_key"
+import fbchat
+import json
 
-client = MQTTClient(AIO_USERNAME , AIO_KEY)
+# Adafruit io connecting
+AIO_USERNAME = "your_username"
+AIO_KEY = "your_aio_key"
+
+client = MQTTClient(AIO_USERNAME, AIO_KEY)
 client.connect()
 client.loop_background()
 # Disable scientific notation for clarity
-#np.set_printoptions(suppress=True)
+# np.set_printoptions(suppress=True)
 
-fire_detected_flag = False
-
-#Facebook connecting 
+#Facebook connecting
 with open(r"C:\Users\Admin\PycharmProjects\YOLOV7\fb_cookies.json") as f:
     cookies = json.load(f)
 username = "username"
@@ -41,8 +39,9 @@ name = "friend name"
 friends = maxxx.searchForUsers(name) # return a list of names
 friend = friends[0] #Modify if you want to send to more people
 
+
 def detect(source, weights, device, img_size, iou_thres, conf_thres):
-    webcam = True
+    fire_detected_flag = False
 
     # Initialize
     set_logging()
@@ -54,18 +53,12 @@ def detect(source, weights, device, img_size, iou_thres, conf_thres):
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(img_size, s=stride)  # check img_size
 
-    if half:
-        model.half()  # to FP16
-
-    vid_path, vid_writer = None, None
 
     # Set Dataloader
-    if webcam:
-        view_img = check_imshow()
-        cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(source, img_size=imgsz, stride=stride)
-    else:
-        dataset = LoadImages(source, img_size=imgsz, stride=stride)
+
+    cudnn.benchmark = True  # set True to speed up constant image size inference
+    dataset = LoadStreams(source, img_size=imgsz, stride=stride)
+
 
     # get name and color
     names = model.module.names if hasattr(model, 'module') else model.names
@@ -93,17 +86,15 @@ def detect(source, weights, device, img_size, iou_thres, conf_thres):
             old_img_w = img.shape[3]
 
         # inference
-        t1 = time_synchronized()
+
         with torch.no_grad():
             pred = model(img)[0]
-        t2 = time_synchronized()
+
 
         pred = non_max_suppression(pred, conf_thres, iou_thres)
-        t3 = time_synchronized()
 
         for i, det in enumerate(pred):
-            if webcam:
-                p, s, im0, frame = path[i], '%g: ' % i, im0s[i].copy(), dataset.count
+            p, s, im0, frame = path[i], '%g: ' % i, im0s[i].copy(), dataset.count
             p = Path(p)
 
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]
@@ -115,29 +106,27 @@ def detect(source, weights, device, img_size, iou_thres, conf_thres):
 
                 for *xyxy, conf, cls in reversed(det):
                     label = f'{names[int(cls)]}{conf:.2f}'
-
-                    if names[int(cls)] == 'Fire 🔥' and float(conf) > 0.80 and not fire_detected_flag:
+                    confident_scoress = float(conf) * 100
+                    client.publish("confident_score", confident_scoress )
+                    if names[int(cls)] == 'Fire' and float(conf) > 0.60 and not fire_detected_flag:
                         msg = "Fire detected!"
+                        client.publish("class", msg)
                         sent = maxxx.sendMessage(msg, thread_id=friend.uid)
                         if sent:
                             print("Message sent successfully!")
                         fire_detected_flag = True
-                        
 
                     plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
         cv2.imshow(str(p), im0)
-        # Convert the image to JPEG format       
-        img_encoded = cv2.imencode('.jpg', im0)[1]
+        # Convert the image to JPEG format
+        im0_reshaped = cv2.resize(im0, (224, 224), interpolation=cv2.INTER_AREA)
+        img_encoded = cv2.imencode('.jpg', im0_reshaped)[1]
 
         # Encode the JPEG image as base64
         encoded_data = base64.b64encode(img_encoded).decode('utf-8')
-
-        # Simulate publishing the image to Adafruit IO 
-        print("Publishing image to Adafruit IO...")
         client.publish("ai", encoded_data)
-
-        print("Waiting 0.5s")
-        time.sleep(0.5)
+        time.sleep(1)
+ 
         # Listen to the keyboard for presses.
         keyboard_input = cv2.waitKey(1)
 
@@ -145,3 +134,20 @@ def detect(source, weights, device, img_size, iou_thres, conf_thres):
         if keyboard_input == 27:
             break
     print(f"Done, ({time.perf_counter() - t0:.3f}s)")
+
+# Device selection
+device = 'cpu'
+
+# Load YOLOv7 model
+weights_path = r"C:\Users\Admin\PycharmProjects\YOLOV7\yolov7_train\yolov7\runs\train\exp5\weights\best.pt"
+img_size = 640
+iou_thres = 0.1
+conf_thres = 0.45
+
+# URL for the Android camera video stream (using IP Webcam app)
+url = "http://172.16.131.106:8080/video" 
+
+# While loop to continuously fetching data from the URL
+while True:
+    detect_results = detect(source=url, weights=weights_path, device=device, img_size=img_size,
+                                    iou_thres=iou_thres, conf_thres=conf_thres)
