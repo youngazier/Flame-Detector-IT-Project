@@ -139,13 +139,13 @@ def detect(source, weights, device, img_size, iou_thres, conf_thres):
 device = 'cpu'
 
 # Load YOLOv7 model
-weights_path = r"C:\Users\Admin\PycharmProjects\YOLOV7\yolov7_train\yolov7\runs\train\exp5\weights\best.pt"
+weights_path = "best.pt"
 img_size = 640
 iou_thres = 0.1
 conf_thres = 0.45
 
 # URL for the Android camera video stream (using IP Webcam app)
-url = "http://172.16.131.106:8080/video" 
+url = "http://____:8080/video" 
 
 # While loop to continuously fetching data from the URL
 while True:
