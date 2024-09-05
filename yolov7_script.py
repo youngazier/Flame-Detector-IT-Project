@@ -29,7 +29,7 @@ client.loop_background()
 # np.set_printoptions(suppress=True)
 
 #Facebook connecting
-with open(r"C:\Users\Admin\PycharmProjects\YOLOV7\fb_cookies.json") as f:
+with open("fb_cookies.json") as f:
     cookies = json.load(f)
 username = "username"
 password = "password"
